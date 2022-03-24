@@ -19,6 +19,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build and export image
       run: ./bin/build && ./bin/export
-      #    - name: Build the Docker image
-      #run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
-
+      shell: bash
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
