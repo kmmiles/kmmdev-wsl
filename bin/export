@@ -4,8 +4,6 @@
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"/profile.sh
 
 set -x
-declare -I root_dir
-
 if docker container exists "${docker_tag_name:-}"; then
   docker container rm "${docker_tag_name:-}"
 fi
