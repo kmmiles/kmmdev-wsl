@@ -1,0 +1,50 @@
+- hosts: all
+  tasks:
+    - name: Install the 'Development tools' package group
+      dnf:
+        name: '@Development tools'
+        state: present
+
+    - name: Install yq
+      get_url:
+        url: https://github.com/mikefarah/yq/releases/download/v4.24.2/yq_linux_amd64
+        dest: /usr/local/bin/yq
+        mode: '0755'
+
+    - name: Install fnm
+      unarchive:
+        src: https://github.com/Schniz/fnm/releases/download/v1.31.0/fnm-linux.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: '0755'
+
+    - name: Install additional dev packages
+      dnf:
+        state: latest
+        name:
+          - gdb
+          - cgdb
+          - valgrind
+          - bison
+          - flex
+          - clang
+          - clang-tools-extra
+          - lldb
+          - bear
+          - cmake
+          - cmake-doc
+          - strace
+          - ShellCheck
+          - jq
+          - meson
+          - sqlite
+          - sqlite-doc
+          - ruby
+          - groff
+          - gperf
+          - astyle
+          - aspell
+          - gettext-devel
+          - texinfo
+          - texlive-latex
+          - texlive-latex-fonts

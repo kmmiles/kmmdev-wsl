@@ -1,0 +1,17 @@
+- hosts: all
+  become: yes
+  become_user: wsl
+  tasks:
+    - name: Create ~/.local/src directory
+      file:
+        path: ~/.local/src
+        state: directory
+
+    - name: Clone dotfiles repo
+      shell: git clone https://github.com/kmmiles/dotfiles ~/.local/src/dotfiles
+
+    - name: Run dotfiles link script
+      shell: ~/.local/src/dotfiles/link
+
+    - name: Install nodejs lts
+      shell: fnm install --lts

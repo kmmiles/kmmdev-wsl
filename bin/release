@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# shellcheck source=/dev/null
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"/profile.sh
+
+usage() {
+  printf 'Usage: %s [OPTIONS]\n\n' "$0"
+  printf 'OPTIONS\n'
+  printf ' -s\tShrink image\n'
+  printf ' -c\tCopy to desktop instead of zipping\n'
+}
+
+main() {
+  # if we're building on github, default to shrinking image
+  if ${CI:-false}; then
+    SHRINK=true
+  else
+    SHRINK=false
+  fi
+
+  COPY=false
+  while getopts 'sc' flag; do
+    case "${flag}" in
+      s)
+        SHRINK=true
+        ;;
+      c)
+        COPY=true
+        ;;
+      *) usage ; exit 1 ;; 
+    esac
+  done
+
+  if $SHRINK; then
+    w "Shrink mode enabled"
+  fi
+
+  export SHRINK
+
+  # build container, export rootfs, copy install.bat and create zip in dist.
+  rm -rf "${root_dir:-}"/dist
+  "${root_dir:-}"/bin/build
+  "${root_dir:-}"/bin/export
+
+  if $COPY; then
+    dest="$HOME/Desktop/${docker_tag_name:-unknown}"
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    cp -v "${root_dir:-}"/bin/install.bat "$dest"
+    cp -v dist/* "$dest"
+  else
+    cp "${root_dir:-}"/bin/install.bat "${root_dir:-}/dist"
+    zip -jrm dist/"${docker_tag_name:-}".zip dist/*
+  fi
+}
+
+main "$@"

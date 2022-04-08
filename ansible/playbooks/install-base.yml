@@ -1,0 +1,36 @@
+- hosts: all
+  tasks:
+    - name: Install base packages
+      dnf:
+        state: latest
+        name:
+          - zsh
+          - zsh-syntax-highlighting
+          - zsh-autosuggestions
+          - vim
+          - rsync
+          - tmux
+          - ncdu
+          - zip
+          - bzip2
+          - p7zip
+          - wl-clipboard
+          - starship
+          - exa
+          - prettyping
+          - youtube-dl
+          - neofetch
+
+    - name: Install nvim nightly
+      unarchive:
+        src: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+        dest: /usr/local
+        remote_src: yes
+        extra_opts:
+          - --strip-components=1
+
+    - name: Install glow
+      dnf:
+        name: 'https://github.com/charmbracelet/glow/releases/download/v1.4.1/glow_1.4.1_linux_amd64.rpm'
+        state: present
+        disable_gpg_check: yes

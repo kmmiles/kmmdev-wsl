@@ -1,0 +1,90 @@
+#!/bin/bash
+
+log() {
+  printf "[%s] %s\n" "$(date +'%m/%d/%Y %r')" "$*"
+}
+
+get_win_user() {
+  local win_drive="$1"
+  declare -a invalid_users
+  invalid_users=( Administrator Default DefaultAccount Guest Public WDAGUtilityAccount )
+  find "/mnt/$win_drive/Users" -mindepth 1 -maxdepth 1 -type d |
+    while read -r line; do
+      user="$(basename "$line")"
+      if [[ ${invalid_users[*]} =~ ${user} ]]; then
+        continue
+      fi
+    
+      echo "$user"
+      break
+    done
+}
+
+print_fstab() {
+  local distro_name
+  distro_name="${1:-unknownos}"
+  printf "/ /mnt/wsl/instances/%s none defaults,bind,X-mount.mkdir 0 0" "$distro_name"
+}
+
+main() {
+  set -e
+
+  # determine some values
+  current_uid="$(id -u)"
+  current_gid="$(id -g)"
+  wsl_user="wsl"
+  wsl_home="/home/$wsl_user"
+  win_drive="$(basename "$(grep drvfs /proc/self/mounts | head -n 1 | cut -d' ' -f 2)")"
+  win_user="$(get_win_user "$win_drive")"
+  win_home="/mnt/$win_drive/Users/$win_user"
+
+  # print some information
+  log "WSL_DISTRO_NAME: $WSL_DISTRO_NAME"
+  log "current_uid: $current_uid"
+  log "current_gid: $current_gid"
+  log "wsl_user: $wsl_user"
+  log "wsl_home: $wsl_home"
+  log "win_drive: $win_drive"
+  log "win_user: $win_user"
+  log "win_home: $win_home"
+
+  # create symlink to the home directory on windows
+  win_home_link="$wsl_home/WindowsHome"
+  if [[ ! -d "$win_home_link" ]]; then
+    log "Creating link: $win_home_link"
+    ln -sf "$win_home" "$win_home_link"
+  fi
+
+  # create symlinks to folders in windows home directory
+  for d in Downloads Music Documents Pictures; do
+    link_source="$win_home_link/$d"
+    link_target="$wsl_home/$d"
+    if [[ ! -d "$link_target" ]]; then
+      log "Creating link: $link_target"
+      ln -sf "$link_source" "$link_target"
+    fi
+  done
+
+  if [[ "$current_uid" == "0" ]]; then
+    # generate /etc/fstab
+    if [[ ! -f /etc/fstab ]]; then
+      print_fstab "$WSL_DISTRO_NAME" > /etc/fstab
+    fi
+
+    # mount / with --rshared to suppress podman warning:
+    # "WARN[0000] "/" is not a shared mount, this could cause issues or missing mounts with rootless containers"
+    log "remounting / with --make-rshared"
+    mount --make-rshared /
+
+    # bind mount instance path, allowing distributions to share files
+    bind_mount="/mnt/wsl/instances/$WSL_DISTRO_NAME"
+    if [[ ! -d  "$bind_mount" ]]; then
+      log "creating bind mount directory: $bind_mount"
+      mkdir -p "$bind_mount"
+    fi
+    log "mounting bind mount: $bind_mount"
+    mount "$bind_mount"
+  fi
+}
+
+main "$@"
